@@ -1,0 +1,36 @@
+# Git
+.git/
+
+# Tests
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info/
+
+# Virtual environments
+.venv/
+.venv
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Local database files
+*.sqlite3
+*.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
