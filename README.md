@@ -1,175 +1,207 @@
 # FastAPI Blog
 
-A server-rendered blog application and JSON API built with FastAPI, SQLAlchemy 2, Jinja2, and asynchronous database access. Users can register, authenticate with JWT bearer tokens, create and manage posts, update their account, upload profile pictures, and reset forgotten passwords.
+A full-stack blog application built with **FastAPI**, **SQLAlchemy**, and **PostgreSQL**. The application supports user authentication, blog post management, profile customization, and password recovery through both server-rendered pages and a REST API.
+
+Containerized with **Docker** and deployed to **Google Cloud Run**, using **Neon PostgreSQL** for database hosting and **Amazon S3** for profile picture storage.
+
+This project was developed by following a FastAPI tutorial, with the goal of gaining hands-on experience in backend development, database management, authentication, testing, containerization, and cloud deployment.
+
+## Live Demo
+
+**Application:** [View Live Blog](https://fastapi-service-1017307243746.us-west1.run.app)
+
+**API Documentation:** [Swagger UI](https://fastapi-service-1017307243746.us-west1.run.app/docs)
 
 ## Features
 
-- Server-rendered pages for the home feed, posts, user posts, authentication, and account management
-- JSON API with automatic OpenAPI documentation
-- JWT authentication with Argon2 password hashing
-- Post CRUD with ownership checks and pagination
-- User registration, profile updates, password changes, and password resets
-- Profile-picture processing with Pillow and storage in an S3-compatible bucket
-- Async SQLAlchemy sessions with Alembic migrations
-- SMTP email delivery for password-reset messages
+### Authentication and User Management
+- User registration and login
+- JWT-based authentication
+- Secure password hashing using Argon2
+- Profile updates and password changes
+- Password reset functionality via email
+- Profile picture uploads using Amazon S3
 
-## Requirements
+### Blog Management
+- Create, read, update, and delete blog posts
+- Post ownership and authorization checks
+- Paginated post listings
+- User-specific blog posts
+- Server-rendered pages using Jinja2
+- REST API with automatically generated OpenAPI documentation
+
+### Backend and Infrastructure
+- Asynchronous database operations using SQLAlchemy
+- PostgreSQL database hosted on Neon
+- Database schema migrations using Alembic
+- Environment-based configuration using Pydantic Settings
+- Automated API testing with pytest
+- Containerization using Docker
+- Cloud deployment using Google Cloud Run
+
+## Tech Stack
+
+| Category | Technologies |
+|---|---|
+| Backend | Python 3.12, FastAPI |
+| Frontend | HTML, Jinja2 |
+| Database | PostgreSQL, Neon |
+| ORM | SQLAlchemy 2.0 |
+| Migrations | Alembic |
+| Authentication | JWT, Argon2 |
+| Object Storage | Amazon S3, Boto3 |
+| Email | aiosmtplib |
+| Testing | pytest, Moto |
+| Dependency Management | uv |
+| Containerization | Docker |
+| Cloud Hosting | Google Cloud Run |
+| Image Registry | Google Artifact Registry |
+| Image Builds | Google Cloud Build |
+
+## Deployment Architecture
+
+The application uses a containerized deployment architecture:
+
+```text
+             Client / Browser
+                    |
+                    | HTTPS
+                    v
+            Google Cloud Run
+                    |
+             FastAPI Application
+                    |
+          +---------+---------+
+          |         |         |
+          v         v         v
+        Neon      AWS S3    SMTP
+      PostgreSQL  Storage   Service
+```
+
+- **Google Cloud Run** hosts the containerized FastAPI application.
+- **Neon** provides a managed PostgreSQL database.
+- **Amazon S3** stores uploaded profile pictures.
+- **Google Artifact Registry** stores Docker images.
+- **Google Cloud Build** builds the container image for deployment.
+
+## Getting Started
+
+### Prerequisites
 
 - Python 3.12+
-- [uv](https://docs.astral.sh/uv/) (recommended)
-- A database supported by SQLAlchemy, such as SQLite or PostgreSQL
-- An S3-compatible bucket for profile pictures
-- An SMTP server if password-reset emails are required
+- [uv](https://docs.astral.sh/uv/)
+- PostgreSQL or SQLite for local development
+- AWS S3 credentials for profile picture uploads
+- SMTP configuration for password reset functionality
 
-## Getting started
+### Installation
 
-### 1. Install dependencies
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/YOUR_USERNAME/fastapi-blog.git
+cd fastapi-blog
+```
+
+**2. Install dependencies**
 
 ```bash
 uv sync
 ```
 
-### 2. Configure environment variables
+This creates a virtual environment and installs the project dependencies from `uv.lock`.
 
-Create a `.env` file in the project root. The file is ignored by Git, so do not commit real credentials.
+**3. Configure environment variables**
 
-```dotenv
-SECRET_KEY=replace-with-a-long-random-secret
-DATABASE_URL=sqlite+aiosqlite:///./blog.db
+Create a `.env` file in the project root and configure the settings required by the application, including:
 
-S3_BUCKET_NAME=your-bucket-name
-S3_REGION=us-east-2
-S3_ACCESS_KEY_ID=your-access-key        # optional when using an IAM role or local AWS config
-S3_SECRET_ACCESS_KEY=your-secret-key     # optional when using an IAM role or local AWS config
-# S3_ENDPOINT_URL=http://localhost:9000  # optional, useful for MinIO or another S3-compatible service
+- Database connection URL
+- JWT secret key
+- AWS S3 credentials and bucket configuration
+- SMTP server credentials
 
-MAIL_SERVER=smtp.example.com
-MAIL_PORT=587
-MAIL_USERNAME=your-smtp-username
-MAIL_PASSWORD=your-smtp-password
-MAIL_FROM=noreply@example.com
-MAIL_USE_TLS=true
+Refer to the application's configuration module for the exact variable names.
 
-FRONTEND_URL=http://localhost:8000
-```
-
-`DATABASE_URL` must use an async SQLAlchemy driver. For PostgreSQL, for example:
-
-```dotenv
-DATABASE_URL=postgresql+psycopg://username:password@localhost:5432/blog
-```
-
-The application also supports optional settings such as `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `MAX_UPLOAD_SIZE_BYTES`, `POSTS_PER_PAGE`, and `RESET_TOKEN_EXPIRE_MINUTES`. Their defaults are defined in `config.py`.
-
-### 3. Create or update the database
+**4. Apply database migrations**
 
 ```bash
 uv run alembic upgrade head
 ```
 
-### 4. Start the development server
+**5. Start the application**
 
 ```bash
-uv run fastapi dev main.py
+uv run fastapi dev
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in a browser. Interactive API documentation is available at [http://localhost:8000/docs](http://localhost:8000/docs), with the raw OpenAPI schema at `/openapi.json`.
-
-## API overview
-
-All API routes are prefixed with `/api`.
-
-| Method | Endpoint | Auth | Description |
-| --- | --- | --- | --- |
-| `POST` | `/api/users` | No | Register a user |
-| `POST` | `/api/users/token` | No | Log in and receive a JWT; submit OAuth2 form fields `username` (email) and `password` |
-| `GET` | `/api/users/me` | Bearer token | Get the current user |
-| `GET` | `/api/users/{user_id}` | No | Get a public user profile |
-| `PATCH` | `/api/users/{user_id}` | Owner | Update username or email |
-| `DELETE` | `/api/users/{user_id}` | Owner | Delete the current user |
-| `GET` | `/api/users/{user_id}/posts` | No | List a user’s posts |
-| `PATCH` | `/api/users/{user_id}/picture` | Owner | Upload a profile picture as multipart form data using the `file` field |
-| `DELETE` | `/api/users/{user_id}/picture` | Owner | Remove a profile picture |
-| `POST` | `/api/users/forgot-password` | No | Request password-reset instructions |
-| `POST` | `/api/users/reset-password` | No | Set a new password with a reset token |
-| `PATCH` | `/api/users/me/password` | Bearer token | Change the current password |
-| `GET` | `/api/posts` | No | List posts; supports `skip` and `limit` |
-| `POST` | `/api/posts` | Bearer token | Create a post |
-| `GET` | `/api/posts/{post_id}` | No | Get a post |
-| `PUT` | `/api/posts/{post_id}` | Post owner | Replace a post |
-| `PATCH` | `/api/posts/{post_id}` | Post owner | Partially update a post |
-| `DELETE` | `/api/posts/{post_id}` | Post owner | Delete a post |
-
-Pagination endpoints return `posts`, `total`, `skip`, `limit`, and `has_more`. Post titles are limited to 100 characters; passwords must contain at least 8 characters.
-
-### Example API usage
-
-Register and log in:
-
-```bash
-curl -X POST http://localhost:8000/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"username":"jane","email":"jane@example.com","password":"correct-horse-battery"}'
-
-curl -X POST http://localhost:8000/api/users/token \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=jane@example.com&password=correct-horse-battery"
-```
-
-Use the returned access token to create a post:
-
-```bash
-curl -X POST http://localhost:8000/api/posts \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"My first post","content":"Hello from FastAPI!"}'
-```
-
-## Web pages
-
-- `/` or `/posts` — home feed
-- `/posts/{post_id}` — post page
-- `/users/{user_id}/posts` — posts by a user
-- `/login` — login page
-- `/register` — registration page
-- `/account` — account page
-- `/forgot-password` — password-reset request page
-- `/reset-password` — password-reset form
-
-## Database migrations
-
-Create a migration after changing the SQLAlchemy models:
-
-```bash
-uv run alembic revision --autogenerate -m "describe the change"
-uv run alembic upgrade head
-```
-
-To inspect the current migration revision:
-
-```bash
-uv run alembic current
-```
-
-## Project layout
+Open the local application URL shown in your terminal, typically:
 
 ```text
-main.py             FastAPI app and server-rendered page routes
-routers/            User and post API routers
-models.py           SQLAlchemy models
-schemas.py          Pydantic request and response schemas
-database.py         Async engine, sessions, and declarative base
-auth.py             Password hashing and JWT authentication
-config.py           Environment-backed application settings
-templates/          Jinja2 HTML templates
-static/             CSS, JavaScript, icons, and default assets
-alembic/            Database migration configuration and revisions
+http://127.0.0.1:8000
 ```
 
-## Production notes
+Interactive API documentation is available at `/docs`.
 
-- Set a strong, unique `SECRET_KEY` and keep all credentials outside version control.
-- Use a managed PostgreSQL database and an S3 bucket or compatible object store for production deployments.
-- Configure a real SMTP provider before enabling password resets.
-- Review the S3 bucket’s public-read policy or replace the generated image URL behavior if profile pictures should not be public.
-- Run migrations as part of deployment before starting the application.
+## Running with Docker
+
+Build the Docker image:
+
+```bash
+docker build -t fastapi-blog .
+```
+
+Run the application with environment variables from your local `.env` file:
+
+```bash
+docker run --env-file .env -p 8080:8080 fastapi-blog
+```
+
+The application should be accessible at:
+
+```text
+http://localhost:8080
+```
+
+The Dockerfile uses a multi-stage build to separate dependency installation from the final runtime image and runs the application as a non-root user.
+
+## Testing
+
+The project includes automated API tests using **pytest**, covering functionality such as:
+
+- Retrieving blog posts
+- Creating posts
+- Updating and deleting posts
+- Authentication requirements
+- Post ownership and authorization
+- Error handling
+
+Run the test suite with:
+
+```bash
+uv run pytest tests/ -v
+```
+
+## What I Learned
+
+Through this project, I gained practical experience with:
+
+- Designing REST APIs using FastAPI and Pydantic
+- Implementing authentication and authorization
+- Working with relational databases through SQLAlchemy
+- Managing database migrations with Alembic
+- Writing automated API tests
+- Integrating external services such as Amazon S3
+- Building multi-stage Docker images
+- Deploying containerized applications to Google Cloud Run
+- Configuring a managed PostgreSQL database using Neon
+- Managing environment variables and production configuration
+
+## Acknowledgments
+
+This application was developed by following a FastAPI tutorial. The project served as a hands-on learning exercise for exploring backend engineering and cloud deployment.
+
+**Tutorial:** [https://www.youtube.com/watch?v=iukOehU5aF4]
+
+## License
+
+This project is intended for educational and portfolio purposes. See the repository's license file, if provided, for usage terms.
