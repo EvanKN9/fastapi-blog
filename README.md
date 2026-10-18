@@ -200,8 +200,4 @@ Through this project, I gained practical experience with:
 
 This application was developed by following a FastAPI tutorial. The project served as a hands-on learning exercise for exploring backend engineering and cloud deployment.
 
-**Tutorial:** [https://www.youtube.com/watch?v=iukOehU5aF4]
-
-## License
-
-This project is intended for educational and portfolio purposes. See the repository's license file, if provided, for usage terms.
+**Tutorial:** [FastAPI Tutorial](https://www.youtube.com/watch?v=iukOehU5aF4)
